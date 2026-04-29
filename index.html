@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>專業尺寸表生成器 - 快速下載版</title>
+    <title>專業尺寸表生成器 - 緊湊版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body {
@@ -23,8 +23,8 @@
         
         .tags { display: flex; flex-wrap: wrap; gap: 10px; }
         .tag {
-            background: #fff; border: 1px solid #ccc; padding: 6px 16px; border-radius: 4px;
-            cursor: pointer; user-select: none; transition: all 0.2s;
+            background: #fff; border: 1px solid #ccc; padding: 6px 12px; border-radius: 4px;
+            cursor: pointer; user-select: none; transition: all 0.2s; font-size: 14px;
         }
         .tag.active { background: #333; color: #fff; border-color: #333; }
         
@@ -40,39 +40,52 @@
         }
         .btn-global-conv:hover { background: #fef3c7; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
-        th, td { border: 1px solid #333; padding: 12px; text-align: center; }
-        th { background: #f2f2f2; font-weight: bold; }
-        .input-cell { width: 90%; padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 16px; border-radius: 4px; }
+        /* 輸入用表格 */
+        #inputTable { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        #inputTable th, #inputTable td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        .input-cell { width: 80px; padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 16px; border-radius: 4px; }
         
         .btn-area { margin-top: 30px; display: flex; justify-content: center; }
-        .btn-main { padding: 15px 40px; border: none; border-radius: 4px; cursor: pointer; font-size: 18px; font-weight: bold; background: #10b981; color: white; transition: background 0.2s; }
-        .btn-main:hover { background: #059669; }
+        .btn-main { padding: 15px 40px; border: none; border-radius: 4px; cursor: pointer; font-size: 18px; font-weight: bold; background: #10b981; color: white; }
 
-        /* 隱藏渲染用的區域，但不能用 display:none 以免截圖失敗，改用定位移出螢幕 */
+        /* 隱藏的截圖區 - 關鍵優化 */
         #captureArea { 
             position: absolute; 
             left: -9999px; 
-            top: 0; 
-            padding: 25px; 
+            padding: 30px; 
             background: white; 
-            display: inline-block; 
-            width: 800px; /* 固定導出寬度確保排版一致 */
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* 讓內容置中 */
         }
+        /* 最終導出的表格：不設 width:100%，改用 auto */
+        .final-table { 
+            border-collapse: collapse; 
+            margin: 0 auto; 
+            table-layout: auto; /* 讓表格寬度隨內容變動 */
+        }
+        .final-table th, .final-table td { 
+            border: 1.5px solid #000; 
+            padding: 8px 15px; /* 緊湊的左右間距 */
+            text-align: center; 
+            white-space: nowrap; /* 防止文字換行 */
+            font-size: 18px;
+        }
+        .final-table th { background: #f2f2f2; font-weight: bold; }
         .final-title { font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 15px; letter-spacing: 5px; color: #000; }
-        .footer-note { font-size: 12px; color:#666; margin-top: 15px; }
+        .footer-note { font-size: 13px; color:#444; margin-top: 15px; text-align: center; width: 100%; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>尺寸表快速生成器</h1>
+    <h1>尺寸表快速生成器 (緊湊導出版)</h1>
     
     <div class="selection-area">
         <div class="group">
             <div class="header-flex">
-                <span class="label">第一步：勾選尺碼 (按順序排列)</span>
-                <button class="btn-tool" onclick="clearSelection('size')">一鍵清空尺碼</button>
+                <span class="label">第一步：勾選尺碼 (按順序)</span>
+                <button class="btn-tool" onclick="clearSelection('size')">一鍵清空</button>
             </div>
             <div id="sizeTags" class="tags">
                 <span class="tag" onclick="toggleSelection(this, 'size')">S</span>
@@ -87,14 +100,14 @@
             </div>
             <div class="custom-add-box">
                 <input type="text" id="customSizeInput" class="custom-input" placeholder="新增尺碼">
-                <button class="btn-add-tag" onclick="addNewItem('sizeTags', 'customSizeInput', 'size')">＋ 新增</button>
+                <button class="btn-add-tag" onclick="addNewItem('sizeTags', 'customSizeInput', 'size')">＋</button>
             </div>
         </div>
 
         <div class="group">
             <div class="header-flex">
-                <span class="label">第二步：勾選參數 (按順序排列)</span>
-                <button class="btn-tool" onclick="clearSelection('param')">一鍵清空參數</button>
+                <span class="label">第二步：勾選參數 (按順序)</span>
+                <button class="btn-tool" onclick="clearSelection('param')">一鍵清空</button>
             </div>
             <div id="paramTags" class="tags">
                 <span class="tag" onclick="toggleSelection(this, 'param')">衣長</span>
@@ -112,7 +125,7 @@
             </div>
             <div class="custom-add-box">
                 <input type="text" id="customParamInput" class="custom-input" placeholder="新增參數">
-                <button class="btn-add-tag" onclick="addNewItem('paramTags', 'customParamInput', 'param')">＋ 新增</button>
+                <button class="btn-add-tag" onclick="addNewItem('paramTags', 'customParamInput', 'param')">＋</button>
             </div>
         </div>
     </div>
@@ -120,7 +133,7 @@
     <div class="table-section">
         <div class="header-flex">
             <span class="label">第三步：輸入數據</span>
-            <button class="btn-global-conv" onclick="batchConvertWeight()">⚖️ 一鍵將表中【斤】轉為【公斤】</button>
+            <button class="btn-global-conv" onclick="batchConvertWeight()">⚖️ 斤轉公斤 (全表)</button>
         </div>
         <table id="inputTable">
             <thead id="tHead"></thead>
@@ -184,7 +197,6 @@ function addNewItem(containerId, inputId, type) {
 }
 
 function batchConvertWeight() {
-    let count = 0;
     selectedSizes.forEach(s => {
         selectedParams.forEach(p => {
             if (p.includes('體重')) {
@@ -197,7 +209,6 @@ function batchConvertWeight() {
                     } else {
                         input.value = (parseFloat(input.value) / 2).toFixed(1);
                     }
-                    count++;
                 }
             }
         });
@@ -221,34 +232,33 @@ function renderInputTable() {
     document.getElementById('tBody').innerHTML = body;
 }
 
-// 核心修改：生成並直接下載
 async function generateAndDownload() {
     if(selectedSizes.length === 0 || selectedParams.length === 0) {
         alert("請選擇尺碼與參數！");
         return;
     }
 
-    // 1. 先把內容塞進隱藏的截圖區
-    let html = `<table style="width:100%; border-collapse:collapse;"><thead><tr><th style="border:1px solid #333; padding:12px; background:#f2f2f2;">尺碼</th>`;
+    // 使用 final-table 類別來控制寬度隨內容變動
+    let html = `<table class="final-table"><thead><tr><th>尺碼</th>`;
     selectedParams.forEach(p => {
         let unit = (p.includes("體重")) ? "(kg)" : "(cm)";
-        html += `<th style="border:1px solid #333; padding:12px; background:#f2f2f2;">${p}<br><small>${unit}</small></th>`;
+        html += `<th>${p}<br><small>${unit}</small></th>`;
     });
     html += `</tr></thead><tbody>`;
     selectedSizes.forEach(s => {
-        html += `<tr><td style="border:1px solid #333; padding:12px; font-weight:bold; text-align:center;">${s}</td>`;
+        html += `<tr><td style="font-weight:bold;">${s}</td>`;
         selectedParams.forEach(p => {
             const input = document.querySelector(`input[data-s="${s}"][data-p="${p}"]`);
             const val = input ? input.value : "-";
-            html += `<td style="border:1px solid #333; padding:12px; text-align:center;">${val}</td>`;
+            html += `<td>${val}</td>`;
         });
         html += `</tr>`;
     });
     html += `</tbody></table>`;
     document.getElementById('finalTableContent').innerHTML = html;
 
-    // 2. 執行截圖與下載
     const target = document.getElementById('captureArea');
+    // 使用 html2canvas 截圖，它會根據 captureArea 的實際內容大小來產圖
     const canvas = await html2canvas(target, { backgroundColor: "#ffffff", scale: 2 });
     
     const link = document.createElement('a');
