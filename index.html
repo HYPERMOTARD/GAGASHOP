@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>專業尺寸表生成器 - 全域換算優化版</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, "Microsoft JhengHei", sans-serif;
+            background-color: #ffffff;
+            padding: 30px;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        h1 { font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 30px; }
+        
+        .selection-area { background: #f9f9f9; padding: 20px; border: 1px solid #eee; margin-bottom: 30px; }
+        .group { margin-bottom: 25px; }
+        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .label { font-weight: bold; color: #555; }
+        
+        .tags { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tag {
+            background: #fff; border: 1px solid #ccc; padding: 6px 16px; border-radius: 4px;
+            cursor: pointer; user-select: none; transition: all 0.2s;
+        }
+        .tag.active { background: #333; color: #fff; border-color: #333; }
+        
+        .custom-add-box { margin-top: 10px; display: flex; gap: 8px; }
+        .custom-input { padding: 5px 10px; border: 1px solid #ccc; border-radius: 4px; width: 140px; }
+        
+        .btn-tool { background: #e5e7eb; color: #374151; padding: 4px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-add-tag { background: #666; color: white; padding: 5px 12px; border: none; border-radius: 4px; cursor: pointer; }
+
+        /* 全域換算按鈕樣式 */
+        .global-conv-area {
+            margin: 20px 0 10px;
+            text-align: right;
+        }
+        .btn-global-conv {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            color: #b45309;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .btn-global-conv:hover { background: #fef3c7; transform: translateY(-1px); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
+        th, td { border: 1px solid #333; padding: 12px; text-align: center; }
+        th { background: #f2f2f2; font-weight: bold; }
+        .input-cell { width: 90%; padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 16px; border-radius: 4px; }
+        
+        .btn-area { margin-top: 30px; display: flex; gap: 15px; justify-content: center; }
+        button.main-btn { padding: 12px 25px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        .btn-generate { background: #333; color: white; }
+        .btn-download { background: #10b981; color: white; display: none; }
+
+        #captureArea { padding: 25px; background: white; display: inline-block; width: calc(100% - 50px); }
+        .preview-container { margin-top: 50px; border-top: 2px dashed #ccc; padding-top: 20px; display: none; }
+        .final-title { font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 15px; letter-spacing: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>尺寸表快速生成器</h1>
+    
+    <div class="selection-area">
+        <div class="group">
+            <div class="header-flex">
+                <span class="label">第一步：勾選尺碼 (按順序排列)</span>
+                <button class="btn-tool" onclick="clearSelection('size')">一鍵清空尺碼</button>
+            </div>
+            <div id="sizeTags" class="tags">
+                <span class="tag" onclick="toggleSelection(this, 'size')">S</span>
+                <span class="tag" onclick="toggleSelection(this, 'size')">M</span>
+                <span class="tag" onclick="toggleSelection(this, 'size')">L</span>
+                <span class="tag" onclick="toggleSelection(this, 'size')">XL</span>
+                <span class="tag" onclick="toggleSelection(this, 'size')">2XL</span>
+                <span class="tag" onclick="toggleSelection(this, 'size')">3XL</span>
+                <span class="tag" onclick="toggleSelection(this, 'size')">4XL</span>
+                <span class="tag" onclick="toggleSelection(this, 'size')">5XL</span>
+                <span class="tag" onclick="toggleSelection(this, 'size')">F (均碼)</span>
+            </div>
+            <div class="custom-add-box">
+                <input type="text" id="customSizeInput" class="custom-input" placeholder="新增尺碼">
+                <button class="btn-add-tag" onclick="addNewItem('sizeTags', 'customSizeInput', 'size')">＋ 新增</button>
+            </div>
+        </div>
+
+        <div class="group">
+            <div class="header-flex">
+                <span class="label">第二步：勾選參數 (按順序排列)</span>
+                <button class="btn-tool" onclick="clearSelection('param')">一鍵清空參數</button>
+            </div>
+            <div id="paramTags" class="tags">
+                <span class="tag" onclick="toggleSelection(this, 'param')">衣長</span>
+                <span class="tag" onclick="toggleSelection(this, 'param')">胸圍</span>
+                <span class="tag" onclick="toggleSelection(this, 'param')">肩寬</span>
+                <span class="tag" onclick="toggleSelection(this, 'param')">袖長</span>
+                <span class="tag" onclick="toggleSelection(this, 'param')">下擺</span>
+                <span class="tag" onclick="toggleSelection(this, 'param')">裙長</span>
+                <span class="tag" onclick="toggleSelection(this, 'param')">腰圍</span>
+                <span class="tag" onclick="toggleSelection(this, 'param')">臀圍</span>
+                <span class="tag" onclick="toggleSelection(this, 'param')">大腿圍</span>
+                <span class="tag" onclick="toggleSelection(this, 'param')">褲長</span>
+                <span class="tag" onclick="toggleSelection(this, 'param')">建議身高</span>
+                <span class="tag" onclick="toggleSelection(this, 'param')">建議體重</span>
+            </div>
+            <div class="custom-add-box">
+                <input type="text" id="customParamInput" class="custom-input" placeholder="新增參數">
+                <button class="btn-add-tag" onclick="addNewItem('paramTags', 'customParamInput', 'param')">＋ 新增</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-section">
+        <div class="header-flex">
+            <span class="label">第三步：輸入數據</span>
+            <button class="btn-global-conv" onclick="batchConvertWeight()">⚖️ 一鍵將表中【斤】轉為【公斤】</button>
+        </div>
+        <table id="inputTable">
+            <thead id="tHead"></thead>
+            <tbody id="tBody"></tbody>
+        </table>
+    </div>
+
+    <div class="btn-area">
+        <button class="main-btn btn-generate" onclick="generateTable()">生成預覽表格</button>
+        <button id="downloadBtn" class="main-btn btn-download" onclick="downloadJPG()">下載為 JPG 圖片</button>
+    </div>
+
+    <div id="previewSection" class="preview-container">
+        <div id="captureArea">
+            <div class="final-title">尺寸表</div>
+            <div id="finalTableContent"></div>
+            <p style="font-size:12px; color:#666; margin-top:15px;">※ 以上尺寸均為手工平鋪測量，誤差1-3cm屬正常範圍。</p>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedSizes = [];
+let selectedParams = [];
+
+function clearSelection(type) {
+    if (type === 'size') {
+        selectedSizes = [];
+        document.querySelectorAll('#sizeTags .tag').forEach(t => t.classList.remove('active'));
+    } else {
+        selectedParams = [];
+        document.querySelectorAll('#paramTags .tag').forEach(t => t.classList.remove('active'));
+    }
+    renderInputTable();
+}
+
+function toggleSelection(el, type) {
+    const val = el.innerText;
+    const targetArray = (type === 'size') ? selectedSizes : selectedParams;
+    if (el.classList.contains('active')) {
+        el.classList.remove('active');
+        const index = targetArray.indexOf(val);
+        if (index > -1) targetArray.splice(index, 1);
+    } else {
+        el.classList.add('active');
+        targetArray.push(val);
+    }
+    renderInputTable();
+}
+
+function addNewItem(containerId, inputId, type) {
+    const input = document.getElementById(inputId);
+    const val = input.value.trim();
+    if (val) {
+        const container = document.getElementById(containerId);
+        const newTag = document.createElement('span');
+        newTag.className = 'tag';
+        newTag.innerText = val;
+        newTag.onclick = function() { toggleSelection(this, type); };
+        container.appendChild(newTag);
+        toggleSelection(newTag, type);
+        input.value = '';
+    }
+}
+
+// 全域批次轉換功能
+function batchConvertWeight() {
+    let count = 0;
+    selectedSizes.forEach(s => {
+        selectedParams.forEach(p => {
+            if (p.includes('體重')) {
+                const input = document.querySelector(`input[data-s="${s}"][data-p="${p}"]`);
+                if (input && input.value) {
+                    if (input.value.includes('-')) {
+                        const parts = input.value.split('-');
+                        const res = parts.map(v => (parseFloat(v) / 2).toFixed(0));
+                        input.value = res.join('-');
+                    } else {
+                        input.value = (parseFloat(input.value) / 2).toFixed(1);
+                    }
+                    count++;
+                }
+            }
+        });
+    });
+    if(count === 0) alert("表格中沒有體重數據可以轉換喔！");
+}
+
+function renderInputTable() {
+    let head = `<tr><th>尺碼</th>`;
+    selectedParams.forEach(p => head += `<th>${p}</th>`);
+    head += `</tr>`;
+    document.getElementById('tHead').innerHTML = head;
+    
+    let body = '';
+    selectedSizes.forEach(s => {
+        body += `<tr><td><strong>${s}</strong></td>`;
+        selectedParams.forEach(p => {
+            body += `<td><input type="text" class="input-cell" data-s="${s}" data-p="${p}" placeholder="-"></td>`;
+        });
+        body += `</tr>`;
+    });
+    document.getElementById('tBody').innerHTML = body;
+}
+
+function generateTable() {
+    if(selectedSizes.length === 0 || selectedParams.length === 0) {
+        alert("請選擇尺碼與參數！");
+        return;
+    }
+    let html = `<table><thead><tr><th>尺碼</th>`;
+    selectedParams.forEach(p => {
+        let unit = (p.includes("體重")) ? "(kg)" : "(cm)";
+        html += `<th>${p}<br><small>${unit}</small></th>`;
+    });
+    html += `</tr></thead><tbody>`;
+    selectedSizes.forEach(s => {
+        html += `<tr><td style="font-weight:bold;">${s}</td>`;
+        selectedParams.forEach(p => {
+            const input = document.querySelector(`input[data-s="${s}"][data-p="${p}"]`);
+            const val = input ? input.value : "-";
+            html += `<td>${val}</td>`;
+        });
+        html += `</tr>`;
+    });
+    html += `</tbody></table>`;
+    document.getElementById('finalTableContent').innerHTML = html;
+    document.getElementById('previewSection').style.display = "block";
+    document.getElementById('downloadBtn').style.display = "inline-block";
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
+function downloadJPG() {
+    const target = document.getElementById('captureArea');
+    html2canvas(target, { backgroundColor: "#ffffff", scale: 2 }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = '尺寸表_' + new Date().getTime() + '.jpg';
+        link.href = canvas.toDataURL('image/jpeg', 0.9);
+        link.click();
+    });
+}
+</script>
+
+</body>
+</html>
