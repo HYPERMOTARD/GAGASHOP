@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>專業尺寸表生成器 - 全域換算優化版</title>
+    <title>專業尺寸表生成器 - 快速下載版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body {
@@ -34,37 +34,33 @@
         .btn-tool { background: #e5e7eb; color: #374151; padding: 4px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
         .btn-add-tag { background: #666; color: white; padding: 5px 12px; border: none; border-radius: 4px; cursor: pointer; }
 
-        /* 全域換算按鈕樣式 */
-        .global-conv-area {
-            margin: 20px 0 10px;
-            text-align: right;
-        }
         .btn-global-conv {
-            background: #fffbeb;
-            border: 1px solid #fcd34d;
-            color: #b45309;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            transition: all 0.2s;
+            background: #fffbeb; border: 1px solid #fcd34d; color: #b45309;
+            padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;
         }
-        .btn-global-conv:hover { background: #fef3c7; transform: translateY(-1px); }
+        .btn-global-conv:hover { background: #fef3c7; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
         th, td { border: 1px solid #333; padding: 12px; text-align: center; }
         th { background: #f2f2f2; font-weight: bold; }
         .input-cell { width: 90%; padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 16px; border-radius: 4px; }
         
-        .btn-area { margin-top: 30px; display: flex; gap: 15px; justify-content: center; }
-        button.main-btn { padding: 12px 25px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        .btn-generate { background: #333; color: white; }
-        .btn-download { background: #10b981; color: white; display: none; }
+        .btn-area { margin-top: 30px; display: flex; justify-content: center; }
+        .btn-main { padding: 15px 40px; border: none; border-radius: 4px; cursor: pointer; font-size: 18px; font-weight: bold; background: #10b981; color: white; transition: background 0.2s; }
+        .btn-main:hover { background: #059669; }
 
-        #captureArea { padding: 25px; background: white; display: inline-block; width: calc(100% - 50px); }
-        .preview-container { margin-top: 50px; border-top: 2px dashed #ccc; padding-top: 20px; display: none; }
-        .final-title { font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 15px; letter-spacing: 5px; }
+        /* 隱藏渲染用的區域，但不能用 display:none 以免截圖失敗，改用定位移出螢幕 */
+        #captureArea { 
+            position: absolute; 
+            left: -9999px; 
+            top: 0; 
+            padding: 25px; 
+            background: white; 
+            display: inline-block; 
+            width: 800px; /* 固定導出寬度確保排版一致 */
+        }
+        .final-title { font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 15px; letter-spacing: 5px; color: #000; }
+        .footer-note { font-size: 12px; color:#666; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -133,16 +129,13 @@
     </div>
 
     <div class="btn-area">
-        <button class="main-btn btn-generate" onclick="generateTable()">生成預覽表格</button>
-        <button id="downloadBtn" class="main-btn btn-download" onclick="downloadJPG()">下載為 JPG 圖片</button>
+        <button class="btn-main" onclick="generateAndDownload()">直接生成並下載圖片</button>
     </div>
 
-    <div id="previewSection" class="preview-container">
-        <div id="captureArea">
-            <div class="final-title">尺寸表</div>
-            <div id="finalTableContent"></div>
-            <p style="font-size:12px; color:#666; margin-top:15px;">※ 以上尺寸均為手工平鋪測量，誤差1-3cm屬正常範圍。</p>
-        </div>
+    <div id="captureArea">
+        <div class="final-title">尺寸表</div>
+        <div id="finalTableContent"></div>
+        <p class="footer-note">※ 以上尺寸均為手工平鋪測量，誤差1-3cm屬正常範圍。</p>
     </div>
 </div>
 
@@ -190,7 +183,6 @@ function addNewItem(containerId, inputId, type) {
     }
 }
 
-// 全域批次轉換功能
 function batchConvertWeight() {
     let count = 0;
     selectedSizes.forEach(s => {
@@ -210,7 +202,6 @@ function batchConvertWeight() {
             }
         });
     });
-    if(count === 0) alert("表格中沒有體重數據可以轉換喔！");
 }
 
 function renderInputTable() {
@@ -230,41 +221,40 @@ function renderInputTable() {
     document.getElementById('tBody').innerHTML = body;
 }
 
-function generateTable() {
+// 核心修改：生成並直接下載
+async function generateAndDownload() {
     if(selectedSizes.length === 0 || selectedParams.length === 0) {
         alert("請選擇尺碼與參數！");
         return;
     }
-    let html = `<table><thead><tr><th>尺碼</th>`;
+
+    // 1. 先把內容塞進隱藏的截圖區
+    let html = `<table style="width:100%; border-collapse:collapse;"><thead><tr><th style="border:1px solid #333; padding:12px; background:#f2f2f2;">尺碼</th>`;
     selectedParams.forEach(p => {
         let unit = (p.includes("體重")) ? "(kg)" : "(cm)";
-        html += `<th>${p}<br><small>${unit}</small></th>`;
+        html += `<th style="border:1px solid #333; padding:12px; background:#f2f2f2;">${p}<br><small>${unit}</small></th>`;
     });
     html += `</tr></thead><tbody>`;
     selectedSizes.forEach(s => {
-        html += `<tr><td style="font-weight:bold;">${s}</td>`;
+        html += `<tr><td style="border:1px solid #333; padding:12px; font-weight:bold; text-align:center;">${s}</td>`;
         selectedParams.forEach(p => {
             const input = document.querySelector(`input[data-s="${s}"][data-p="${p}"]`);
             const val = input ? input.value : "-";
-            html += `<td>${val}</td>`;
+            html += `<td style="border:1px solid #333; padding:12px; text-align:center;">${val}</td>`;
         });
         html += `</tr>`;
     });
     html += `</tbody></table>`;
     document.getElementById('finalTableContent').innerHTML = html;
-    document.getElementById('previewSection').style.display = "block";
-    document.getElementById('downloadBtn').style.display = "inline-block";
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-}
 
-function downloadJPG() {
+    // 2. 執行截圖與下載
     const target = document.getElementById('captureArea');
-    html2canvas(target, { backgroundColor: "#ffffff", scale: 2 }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = '尺寸表_' + new Date().getTime() + '.jpg';
-        link.href = canvas.toDataURL('image/jpeg', 0.9);
-        link.click();
-    });
+    const canvas = await html2canvas(target, { backgroundColor: "#ffffff", scale: 2 });
+    
+    const link = document.createElement('a');
+    link.download = '尺寸表_' + new Date().getTime() + '.jpg';
+    link.href = canvas.toDataURL('image/jpeg', 0.9);
+    link.click();
 }
 </script>
 
